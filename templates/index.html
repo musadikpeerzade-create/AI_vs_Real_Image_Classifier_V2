@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI vs Real Image Classifier – V2</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+  <div class="app-shell">
+    <div class="card">
+      <div class="card-header">
+        <h1>🧠 AI vs Real Image Classifier <span class="badge">V2</span></h1>
+        <p>Upload an image and let our upgraded CNN decide if it's <strong>AI-generated</strong> or
+          <strong>Real</strong>.
+        </p>
+      </div>
+
+      <div class="card-body">
+        <div class="upload-section" id="dropzone">
+          <label for="imageInput" class="upload-label">
+            <span>📤 Click to choose an image or drag & drop one here</span>
+            <small>Supported: JPG, PNG, GIF, etc.</small>
+          </label>
+          <input type="file" id="imageInput" accept="image/*" />
+        </div>
+
+        <div class="preview-and-result">
+          <div class="preview-container">
+            <h3>Preview</h3>
+            <div class="preview-box">
+              <img id="preview" src="#" alt="Preview" style="display:none;">
+              <span id="preview-placeholder">No image selected yet</span>
+            </div>
+          </div>
+
+          <div class="result-container">
+            <h3>Prediction</h3>
+            <div id="result" class="result-box">
+              <p>Upload an image and click Predict to see the result.</p>
+            </div>
+            <button id="predictBtn" class="primary-btn">🚀 Predict</button>
+          </div>
+        </div>
+      </div>
+      <!-- Informational note about dataset / resolution differences -->
+      <div class="info-note">
+        <strong>Info:</strong> The model may mislabel real images if they differ from the training dataset’s
+        resolution or texture patterns. Try downsampling large photos to match the dataset characteristics
+        for more reliable predictions.
+      </div>
+
+      <div class="card-footer">
+        <div class="footer-meta">
+          <p>Model: <strong>Custom CNN (PyTorch)</strong> • Dataset: <strong>CIFAKE</strong> • Accuracy:
+            <strong>96.34%</strong>
+          </p>
+        </div>
+
+        <div class="site-footer">
+          <div class="footer-left">💻 Made by <strong>Musaddik</strong></div>
+          <div class="footer-right">⚡ Powered by <strong>ChatGPT</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const imageInput = document.getElementById("imageInput");
+      const previewImg = document.getElementById("preview");
+      const previewPlaceholder = document.getElementById("preview-placeholder");
+      const resultDiv = document.getElementById("result");
+      const predictBtn = document.getElementById("predictBtn");
+      const dropzone = document.getElementById("dropzone");
+
+      let selectedFile = null;
+
+      function handleFile(file) {
+        selectedFile = file;
+
+        if (!file) {
+          previewImg.style.display = "none";
+          previewPlaceholder.style.display = "block";
+          resultDiv.innerHTML = "<p>Upload an image and click Predict to see the result.</p>";
+          resultDiv.className = "result-box neutral";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          previewImg.src = reader.result;
+          previewImg.style.display = "block";
+          previewPlaceholder.style.display = "none";
+        };
+        reader.readAsDataURL(file);
+
+        resultDiv.innerHTML = "<p>Image loaded. Click Predict to classify.</p>";
+        resultDiv.className = "result-box neutral";
+      }
+
+      imageInput.addEventListener("change", (e) => {
+        handleFile(e.target.files[0]);
+      });
+
+      // Drag & drop support
+      dropzone.addEventListener("dragenter", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+      dropzone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+      dropzone.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+      });
+      dropzone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropzone.classList.remove("dragover");
+        const file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) {
+          // Mirror the file into the input element for compatibility
+          try {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            imageInput.files = dataTransfer.files;
+          } catch (err) {
+            // Some browsers may not support DataTransfer constructor in this context
+          }
+          handleFile(file);
+        }
+      });
+
+      predictBtn.addEventListener("click", async () => {
+        if (!selectedFile) {
+          resultDiv.innerHTML = "<p>Please select an image first!</p>";
+          resultDiv.className = "result-box error";
+          return;
+        }
+
+        // Disable the button to prevent multiple submissions
+        predictBtn.disabled = true;
+        predictBtn.textContent = "⏳ Analyzing...";
+
+        resultDiv.innerHTML = "<p>⏳ Analyzing image with V2 model...</p>";
+        resultDiv.className = "result-box neutral";
+
+        try {
+          const formData = new FormData();
+          formData.append("image", selectedFile);
+
+          const response = await fetch("/predict", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error("Server error, please check backend.");
+          }
+
+          const data = await response.json();
+          if (data.error) {
+            resultDiv.innerHTML = `<p>❌ ${data.error}</p>`;
+            resultDiv.className = "result-box error";
+            return;
+          }
+
+          const label = data.label;
+          const conf = data.confidence;
+          const uncertain = data.uncertain || false;
+          const note = data.note || "";
+
+          let moodClass = "ai-label";
+          if (label.toLowerCase().includes("real")) {
+            moodClass = "real-label";
+          }
+
+          resultDiv.className = "result-box";
+          resultDiv.innerHTML = `
+          <div class="pill ${moodClass}">${label}</div>
+          <p class="confidence"><strong>${conf}% confident</strong></p>
+          ${uncertain ? `<p class="uncertain-text">⚠️ ${note}</p>` : ''}
+          <hr style="opacity:0.2;">
+          <p class="debug-title">Detailed Prediction:</p>
+          <div class="debug-box">
+            <div>🧠 AI-Generated: <strong>${(label === "AI-Generated" ? conf : (100 - conf)).toFixed(2)}%</strong></div>
+            <div>📷 Real Image: <strong>${(label === "Real" ? conf : (100 - conf)).toFixed(2)}%</strong></div>
+          </div>
+          <p class="hint">Powered by a deeper CNN with data augmentation and improved training strategy.</p>
+        `;
+        } catch (err) {
+          resultDiv.innerHTML = `<p class="error-text">❌ ${err.message}</p>`;
+          resultDiv.className = "result-box error";
+        } finally {
+          // Re-enable predict button after request finishes
+          predictBtn.disabled = false;
+          predictBtn.textContent = "🚀 Predict";
+        }
+      });
+    });
+  </script>
