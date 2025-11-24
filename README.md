@@ -80,29 +80,36 @@ Clone the repository:
 ```sh
 git clone <your-repo-link>
 cd AI_vs_Real_Classifier
+```
 
 Create a virtual environment:
 
 ```sh
 python -m venv .venv
 .venv\Scripts\activate  # Windows
+```
 
 Install dependencies:
 
 ```sh
 pip install -r requirements.txt
+```
 
 Run the app:
 
 ```sh
 python app.py
+```
 
 Open the browser:
 
 http://127.0.0.1:5000
 
+---
 👥 Authors & Credits
 
-Developed by: Musaddik Peerzade
-AI Assistance: ChatGPT 5.1
+Developed by: Musaddik Peerzade,
+AI Assistance: ChatGPT 5.1,
 Human intuition + machine intelligence.
+
+---
