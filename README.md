@@ -1,6 +1,6 @@
 # 🧠 AI-Generated vs Real Image Classifier – V2.1 (96.34% Accuracy)
 
-This project builds a deep learning model that classifies whether an image is *AI-generated* or *real, using a custom Convolutional Neural Network (CNN) built in **PyTorch*.  
+This project builds a deep learning model that classifies whether an image is *AI-generated* or *real*, using a custom Convolutional Neural Network (CNN) built in *PyTorch*.  
 It includes a full web UI interface built with *Flask*, allowing real-time predictions directly from a browser.
 
 ---
